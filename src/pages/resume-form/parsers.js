@@ -162,6 +162,11 @@ export const parseTextImport = (rawText) => {
         date: toString(entry?.date),
         link: toString(entry?.link),
       })),
+      achievements: (parsed?.achievements || []).map((entry) => ({
+        title: toString(entry?.title),
+        detail: toString(entry?.detail),
+        date: toString(entry?.date),
+      })),
       education: (parsed?.education || []).map((entry) => ({
         school: toString(entry?.school),
         location: toString(entry?.location),
@@ -175,6 +180,7 @@ export const parseTextImport = (rawText) => {
     const internshipsBlock = readSectionBlocks(text, 'INTERNSHIPS');
     const projectsBlock = readSectionBlocks(text, 'PROJECTS');
     const certsBlock = readSectionBlocks(text, 'CERTIFICATIONS');
+    const achievementsBlock = readSectionBlocks(text, 'ACHIEVEMENTS');
     const eduBlock = readSectionBlocks(text, 'EDUCATION');
 
     const skills = skillsBlock
@@ -249,6 +255,12 @@ export const parseTextImport = (rawText) => {
       link: pickField(chunk, 'link'),
     }));
 
+    const achievements = parseListItems(achievementsBlock).map((chunk) => ({
+      title: pickFirstField(chunk, ['title', 'name', 'achievement']),
+      detail: pickFirstField(chunk, ['detail', 'description', 'summary']),
+      date: pickField(chunk, 'date'),
+    }));
+
     const education = parseListItems(eduBlock).map((chunk) => ({
       school: pickField(chunk, 'school'),
       location: pickField(chunk, 'location'),
@@ -268,6 +280,7 @@ export const parseTextImport = (rawText) => {
       internships,
       projects,
       certifications,
+      achievements,
       education,
     };
   }

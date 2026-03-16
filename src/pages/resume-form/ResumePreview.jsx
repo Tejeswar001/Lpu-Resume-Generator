@@ -12,6 +12,7 @@ function ResumePreview({
   visibleInternships,
   visibleProjects,
   visibleCertifications,
+  visibleAchievements,
   visibleEducation,
 }) {
   const splitCsv = (value) =>
@@ -166,6 +167,23 @@ function ResumePreview({
                               </a>
                             </>
                           ) : null}
+                        </p>
+                        <p className="whitespace-nowrap text-[14px]">{entry.date || ''}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {visibleAchievements.length > 0 && (
+                <section>
+                  <h2 className={sectionTitleClass}>Achievements</h2>
+                  <div className="mt-[4px] space-y-[4px] text-[14px] leading-[1.18]">
+                    {visibleAchievements.map((entry, index) => (
+                      <div key={`preview-achievement-${index}`} className="flex items-start justify-between gap-3">
+                        <p>
+                          <span>{entry.title || 'Achievement'}</span>
+                          {entry.detail ? <span>{` | ${entry.detail}`}</span> : null}
                         </p>
                         <p className="whitespace-nowrap text-[14px]">{entry.date || ''}</p>
                       </div>

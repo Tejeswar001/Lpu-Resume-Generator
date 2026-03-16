@@ -35,3 +35,9 @@ export const createEducation = () => ({
   duration: '',
   program: '',
 });
+
+export const createAchievement = () => ({
+  title: '',
+  detail: '',
+  date: '',
+});

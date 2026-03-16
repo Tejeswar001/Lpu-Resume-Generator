@@ -3,6 +3,7 @@ import EditorSection from './resume-form/EditorSection';
 import ResumePreview from './resume-form/ResumePreview';
 import { parseTextImport } from './resume-form/parsers';
 import {
+  createAchievement,
   createCertification,
   createEducation,
   createInternship,
@@ -35,6 +36,7 @@ function ResumeForm() {
   const [internships, setInternships] = useState([createInternship()]);
   const [projects, setProjects] = useState([createProject()]);
   const [certifications, setCertifications] = useState([createCertification()]);
+  const [achievements, setAchievements] = useState([createAchievement()]);
   const [education, setEducation] = useState([createEducation()]);
   const resumePreviewRef = useRef(null);
 
@@ -102,10 +104,19 @@ function ResumeForm() {
         }))
       : [];
 
+    const safeAchievements = Array.isArray(data?.achievements)
+      ? data.achievements.map((entry) => ({
+          title: asText(entry?.title),
+          detail: asText(entry?.detail),
+          date: asText(entry?.date),
+        }))
+      : [];
+
     setSkills(safeSkills.length ? safeSkills : [createSkillSection()]);
     setInternships(safeInternships.length ? safeInternships : [createInternship()]);
     setProjects(safeProjects.length ? safeProjects : [createProject()]);
     setCertifications(safeCertifications.length ? safeCertifications : [createCertification()]);
+    setAchievements(safeAchievements.length ? safeAchievements : [createAchievement()]);
     setEducation(safeEducation.length ? safeEducation : [createEducation()]);
   };
 
@@ -246,11 +257,20 @@ function ResumeForm() {
     [education]
   );
 
+  const visibleAchievements = useMemo(
+    () =>
+      achievements.filter(
+        (entry) => asTrimmedText(entry.title) || asTrimmedText(entry.detail) || asTrimmedText(entry.date)
+      ),
+    [achievements]
+  );
+
   const filledCount =
     visibleSkills.length +
     visibleInternships.length +
     visibleProjects.length +
     visibleCertifications.length +
+    visibleAchievements.length +
     visibleEducation.length;
 
   const fileNameBase = buildFileNameBase(personal.name);
@@ -317,7 +337,7 @@ function ResumeForm() {
                     Import Existing Resume Data
                   </p>
                   <p className="mt-1 text-sm text-base-content/60">
-                    Paste LLM output or structured text and auto-fill everything.
+                    Paste JSON or structured text (including achievements) and auto-fill everything.
                   </p>
                 </div>
               </div>
@@ -326,12 +346,19 @@ function ResumeForm() {
               <textarea
                 className="textarea textarea-bordered w-full bg-base-100"
                 rows={7}
-                placeholder="Paste JSON or example-format text here"
+                placeholder="Paste JSON or sections: PERSONAL, SKILLS, INTERNSHIPS, PROJECTS, CERTIFICATIONS, ACHIEVEMENTS, EDUCATION"
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
               />
               <div className="flex flex-wrap gap-2">
                 <input type="file" accept=".txt,.md,.json" className="file-input file-input-bordered file-input-sm bg-base-100" onChange={onImportFile} />
+                <a
+                  href="/resume-import-example.txt"
+                  download
+                  className="btn btn-sm btn-outline"
+                >
+                  Download Example
+                </a>
                 <button type="button" className="btn btn-sm btn-primary" onClick={onImportFromText}>
                   Import and Autofill
                 </button>
@@ -652,6 +679,57 @@ function ResumeForm() {
             </EditorSection>
 
             <EditorSection
+              title="Achievements"
+              hint="Awards, recognitions, and notable accomplishments."
+              count={visibleAchievements.length}
+              action={
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={() => addItem(setAchievements, createAchievement)}
+                >
+                  Add Achievement
+                </button>
+              }
+            >
+              {achievements.map((entry, index) => (
+                <div key={`achievement-${index}`} className="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <span className="badge badge-outline">Achievement {index + 1}</span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => removeItem(setAchievements, index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <input
+                      className="input input-bordered"
+                      placeholder="Title"
+                      value={entry.title}
+                      onChange={(e) => updateListItem(setAchievements, index, 'title', e.target.value)}
+                    />
+                    <input
+                      className="input input-bordered"
+                      placeholder="Date"
+                      value={entry.date}
+                      onChange={(e) => updateListItem(setAchievements, index, 'date', e.target.value)}
+                    />
+                    <textarea
+                      className="textarea textarea-bordered md:col-span-2"
+                      rows={2}
+                      placeholder="Description / impact"
+                      value={entry.detail}
+                      onChange={(e) => updateListItem(setAchievements, index, 'detail', e.target.value)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </EditorSection>
+
+            <EditorSection
               title="Education"
               hint="Institution, location, duration, and program details."
               count={visibleEducation.length}
@@ -716,6 +794,7 @@ function ResumeForm() {
           visibleProjects={visibleProjects}
           visibleCertifications={visibleCertifications}
           visibleEducation={visibleEducation}
+          visibleAchievements={visibleAchievements}
           zoom={zoom}
           setZoom={setZoom}
           exportError={exportError}

@@ -15,7 +15,15 @@ function EditorSection({ title, hint, count, action, children, defaultOpen = fal
             </div>
             {hint ? <p className="mt-1 text-sm text-base-content/60">{hint}</p> : null}
           </div>
-          {action ? <div className="mr-2 shrink-0">{action}</div> : null}
+          {action ? (
+            <div
+              className="relative z-10 mr-2 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {action}
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="collapse-content pt-0">{children}</div>

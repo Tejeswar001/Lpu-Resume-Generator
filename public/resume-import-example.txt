@@ -61,6 +61,15 @@ issuer: Oracle
 date: Oct 2025
 link: https://example.com/certificate-2
 
+## ACHIEVEMENTS
+title: Winner - National Hackathon
+detail: Built AI-based disaster response workflow and ranked 1st among 120 teams
+date: Nov 2025
+---
+title: Department Merit Scholarship
+detail: Awarded for top 5% academic performance in CSE department
+date: Aug 2024
+
 ## EDUCATION
 school: Example University
 location: City, State
