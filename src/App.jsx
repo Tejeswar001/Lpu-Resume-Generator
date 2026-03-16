@@ -12,6 +12,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/ResumeForm" element={<ResumeForm />} />
+          <Route path="/resumeform" element={<ResumeForm />} />
         </Routes>
       </main>
     </div>
