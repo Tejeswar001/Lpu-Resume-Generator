@@ -267,15 +267,15 @@ function ResumeForm() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 pt-24">
-      <div className="mx-auto grid max-w-[1880px] grid-cols-1 gap-5 px-4 pb-5 xl:grid-cols-[minmax(560px,720px)_minmax(760px,1fr)]">
+    <div className="min-h-screen bg-base-200 pt-28 sm:pt-24">
+      <div className="mx-auto grid max-w-[1880px] grid-cols-1 gap-4 px-3 pb-5 sm:gap-5 sm:px-4 xl:grid-cols-[minmax(560px,720px)_minmax(760px,1fr)]">
         <div className="space-y-5 rounded-[28px] border border-base-300 bg-base-100 p-5 shadow-lg xl:h-[calc(100vh-7.5rem)] xl:overflow-y-auto">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-xl">
               <span className="badge badge-outline badge-primary mb-3">Simple Builder</span>
               <h2 className="text-3xl font-bold text-primary">Resume Form</h2>
             </div>
-            <div className="stats stats-horizontal border border-base-300 bg-base-200 shadow-sm">
+            <div className="stats stats-vertical w-full border border-base-300 bg-base-200 shadow-sm sm:w-auto sm:stats-horizontal">
               <div className="stat px-5 py-3">
                 <div className="stat-title text-xs">Filled Sections</div>
                 <div className="stat-value text-2xl text-primary">{filledCount}</div>
@@ -289,7 +289,7 @@ function ResumeForm() {
 
           <div className="collapse-arrow collapse border border-base-300 bg-base-200/70 shadow-sm">
             <input type="checkbox" />
-            <div className="collapse-title pr-20">
+            <div className="collapse-title pr-12 sm:pr-20">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-base-content/70">

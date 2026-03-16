@@ -27,7 +27,7 @@ function ResumePreview({
       .filter(Boolean);
 
   return (
-    <div className="rounded-[28px] border border-base-300 bg-base-100 p-4 shadow-lg xl:sticky xl:top-24 xl:h-[calc(100vh-7.5rem)]">
+    <div className="rounded-[28px] border border-base-300 bg-base-100 p-3 shadow-lg sm:p-4 xl:sticky xl:top-24 xl:h-[calc(100vh-7.5rem)]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] opacity-70">A4 Preview</p>
@@ -56,7 +56,7 @@ function ResumePreview({
       </div>
       {exportError ? <p className="mb-2 text-xs text-error">{exportError}</p> : null}
 
-      <div className="mockup-window h-[calc(100%-4rem)] border border-base-300 bg-base-300">
+      <div className="mockup-window h-[72vh] border border-base-300 bg-base-300 sm:h-[78vh] xl:h-[calc(100%-4rem)]">
         <div className="flex h-full overflow-auto bg-base-200/70 p-4">
           <div className="mx-auto origin-top" style={{ transform: `scale(${zoom / 100})`, width: '210mm' }}>
             <div data-export-root="resume" ref={resumePreviewRef} className="h-[297mm] w-[210mm] bg-white px-[10mm] pb-[10mm] pt-[6.2mm] text-left text-black shadow-lg" style={{ fontFamily: 'Liberation Sans, Arial, sans-serif' }}>
