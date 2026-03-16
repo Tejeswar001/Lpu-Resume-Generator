@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const sectionTitleClass =
   'mt-[10px] border-b border-gray-400 pb-[2px] text-[16px] font-bold uppercase leading-[1.05] tracking-[-0.2px] text-[#2c2d92]';
@@ -66,7 +68,7 @@ const readSectionBlocks = (text, sectionName) => {
 const parseListItems = (sectionText) => {
   if (!sectionText) return [];
   return sectionText
-    .split(/\n\s*---\s*\n/g)
+    .split(/\r?\n\s*---\s*\r?\n/g)
     .map((chunk) => chunk.trim())
     .filter(Boolean);
 };
@@ -77,10 +79,87 @@ const pickField = (chunk, key) => {
   return match ? match[1].trim() : '';
 };
 
-const pickMultilineField = (chunk, key) => {
-  const regex = new RegExp(`^${key}:\\s*([\\s\\S]*?)(?=\\n[a-z_]+:|$)`, 'im');
-  const match = chunk.match(regex);
-  return match ? match[1].trim() : '';
+const pickFirstField = (chunk, keys) => {
+  for (const key of keys) {
+    const value = pickField(chunk, key);
+    if (value) return value;
+  }
+  return '';
+};
+
+const pickMultilineFieldByKeys = (chunk, keys, stopKeys) => {
+  const lines = chunk.replace(/\r/g, '').split('\n');
+  const keySet = new Set(keys.map((key) => key.toLowerCase()));
+  const stopSet = new Set(stopKeys.map((key) => key.toLowerCase()));
+
+  let capture = false;
+  let buffer = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    const trimmed = line.trim();
+
+    if (!capture) {
+      const startMatch = trimmed.match(/^([a-z_][a-z0-9_ ]*):\s*(.*)$/i);
+      if (!startMatch) continue;
+
+      const key = startMatch[1].trim().toLowerCase();
+      if (!keySet.has(key)) continue;
+
+      capture = true;
+      const inline = startMatch[2]?.trim();
+      if (inline) buffer.push(inline);
+      continue;
+    }
+
+    const nextFieldMatch = trimmed.match(/^([a-z_][a-z0-9_ ]*):\s*(.*)$/i);
+    if (nextFieldMatch) {
+      const nextKey = nextFieldMatch[1].trim().toLowerCase();
+      if (stopSet.has(nextKey)) break;
+    }
+
+    buffer.push(trimmed);
+  }
+
+  return buffer.join('\n').trim();
+};
+
+const parseHighlights = (chunk, stopKeys) => {
+  const raw = pickMultilineFieldByKeys(
+    chunk,
+    ['highlights', 'bullets', 'bullet_points', 'responsibilities', 'points'],
+    stopKeys
+  );
+  if (!raw) return [''];
+
+  const normalized = raw.replace(/\r/g, '').trim();
+  const lines = normalized
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^(?:[-*•]\s+|\d+[.)]\s+)/, '').trim())
+    .filter(Boolean);
+
+  if (lines.length > 1) return lines;
+
+  const [single] = lines;
+  if (!single) return [''];
+  if (single.includes(';')) {
+    const splitBySemi = single
+      .split(';')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (splitBySemi.length > 1) return splitBySemi;
+  }
+  if (single.includes(' | ')) {
+    const splitByPipe = single
+      .split(' | ')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (splitByPipe.length > 1) return splitByPipe;
+  }
+
+  return [single];
 };
 
 const parseTextImport = (rawText) => {
@@ -152,28 +231,54 @@ const parseTextImport = (rawText) => {
       .filter((entry) => entry.title || entry.items);
 
     const internships = parseListItems(internshipsBlock).map((chunk) => ({
-      role: pickField(chunk, 'role'),
-      company: pickField(chunk, 'company'),
-      start: pickField(chunk, 'start'),
-      end: pickField(chunk, 'end'),
+      role: pickFirstField(chunk, ['role', 'position']),
+      company: pickFirstField(chunk, ['company', 'organization']),
+      start: pickFirstField(chunk, ['start', 'start_date']),
+      end: pickFirstField(chunk, ['end', 'end_date']),
       highlights: normalizeBullets(
-        pickMultilineField(chunk, 'highlights')
-          .split('\n')
-          .map((line) => line.replace(/^[-*]\s*/, '').trim())
-          .filter(Boolean)
+        parseHighlights(chunk, [
+          'role',
+          'position',
+          'company',
+          'organization',
+          'start',
+          'start_date',
+          'end',
+          'end_date',
+          'duration',
+          'location',
+          'highlights',
+          'bullets',
+          'bullet_points',
+          'responsibilities',
+          'points',
+        ])
       ),
     }));
 
     const projects = parseListItems(projectsBlock).map((chunk) => ({
-      title: pickField(chunk, 'title'),
-      tech: pickField(chunk, 'tech'),
-      link: pickField(chunk, 'link'),
-      date: pickField(chunk, 'date'),
+      title: pickFirstField(chunk, ['title', 'name']),
+      tech: pickFirstField(chunk, ['tech', 'stack', 'technologies']),
+      link: pickFirstField(chunk, ['link', 'url', 'github']),
+      date: pickFirstField(chunk, ['date', 'duration']),
       highlights: normalizeBullets(
-        pickMultilineField(chunk, 'highlights')
-          .split('\n')
-          .map((line) => line.replace(/^[-*]\s*/, '').trim())
-          .filter(Boolean)
+        parseHighlights(chunk, [
+          'title',
+          'name',
+          'tech',
+          'stack',
+          'technologies',
+          'link',
+          'url',
+          'github',
+          'date',
+          'duration',
+          'highlights',
+          'bullets',
+          'bullet_points',
+          'responsibilities',
+          'points',
+        ])
       ),
     }));
 
@@ -208,10 +313,11 @@ const parseTextImport = (rawText) => {
   }
 };
 
-function EditorSection({ title, hint, count, action, children }) {
+function EditorSection({ title, hint, count, action, children, defaultOpen = false }) {
   return (
-    <section className="card border border-base-300 bg-base-200/60 shadow-sm">
-      <div className="card-body gap-4 p-4">
+    <section className="collapse collapse-arrow border border-base-300 bg-base-200/60 shadow-sm">
+      <input type="checkbox" defaultChecked={defaultOpen} />
+      <div className="collapse-title pb-3 pr-16">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -224,8 +330,10 @@ function EditorSection({ title, hint, count, action, children }) {
             </div>
             {hint ? <p className="mt-1 text-sm text-base-content/60">{hint}</p> : null}
           </div>
-          {action}
+          {action ? <div className="mr-2 shrink-0">{action}</div> : null}
         </div>
+      </div>
+      <div className="collapse-content pt-0">
         {children}
       </div>
     </section>
@@ -235,6 +343,8 @@ function EditorSection({ title, hint, count, action, children }) {
 function ResumeForm() {
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   const [zoom, setZoom] = useState(90);
 
@@ -251,6 +361,7 @@ function ResumeForm() {
   const [projects, setProjects] = useState([createProject()]);
   const [certifications, setCertifications] = useState([createCertification()]);
   const [education, setEducation] = useState([createEducation()]);
+  const resumePreviewRef = useRef(null);
 
   const applyImportedData = (data) => {
     setPersonal({
@@ -398,6 +509,211 @@ function ResumeForm() {
     visibleCertifications.length +
     visibleEducation.length;
 
+  const fileNameBase = (personal.name || 'resume')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  const capturePreviewImage = async () => {
+    if (!resumePreviewRef.current) return null;
+    if (document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+
+    const captureNode = async (node) => {
+      const canvas = await html2canvas(node, {
+        backgroundColor: '#ffffff',
+        scale: 3,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+      });
+      return canvas.toDataURL('image/png');
+    };
+
+    try {
+      return await captureNode(resumePreviewRef.current);
+    } catch {
+      const cloneHost = document.createElement('div');
+      cloneHost.style.position = 'fixed';
+      cloneHost.style.left = '-10000px';
+      cloneHost.style.top = '0';
+      cloneHost.style.background = '#fff';
+      cloneHost.style.margin = '0';
+      cloneHost.style.padding = '0';
+
+      const cloned = resumePreviewRef.current.cloneNode(true);
+      if (cloned instanceof HTMLElement) {
+        cloned.style.width = '210mm';
+        cloned.style.height = '297mm';
+        cloned.style.maxWidth = '210mm';
+        cloned.style.minWidth = '210mm';
+        cloned.style.margin = '0';
+        cloned.style.boxShadow = 'none';
+      }
+      cloneHost.appendChild(cloned);
+      document.body.appendChild(cloneHost);
+
+      try {
+        return await captureNode(cloned);
+      } finally {
+        document.body.removeChild(cloneHost);
+      }
+    }
+  };
+
+  const getExactPreviewHtml = () => {
+    if (!resumePreviewRef.current) return '';
+
+    const clonedPage = resumePreviewRef.current.cloneNode(true);
+    const styles = Array.from(document.querySelectorAll('style,link[rel="stylesheet"]'))
+      .map((el) => el.outerHTML)
+      .join('\n');
+
+    return `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          ${styles}
+          <style>
+            @page { size: A4; margin: 0; }
+            html, body { margin: 0; padding: 0; background: #ffffff; }
+            body { display: flex; justify-content: center; }
+            .print-wrap { width: 210mm; margin: 0; }
+            .print-wrap > * { margin: 0 !important; box-shadow: none !important; }
+          </style>
+        </head>
+        <body>
+          <div class="print-wrap">${clonedPage.outerHTML}</div>
+        </body>
+      </html>
+    `;
+  };
+
+  const printHtmlThroughIframe = (html) =>
+    new Promise((resolve, reject) => {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      const cleanup = () => {
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 300);
+      };
+
+      iframe.onload = () => {
+        try {
+          const win = iframe.contentWindow;
+          if (!win) throw new Error('Print frame unavailable');
+          win.focus();
+          win.print();
+          cleanup();
+          resolve();
+        } catch (error) {
+          cleanup();
+          reject(error);
+        }
+      };
+
+      const doc = iframe.contentDocument;
+      if (!doc) {
+        cleanup();
+        reject(new Error('Print document unavailable'));
+        return;
+      }
+      doc.open();
+      doc.write(html);
+      doc.close();
+    });
+
+  const downloadPdf = async () => {
+    setExportError('');
+    setIsExporting(true);
+    try {
+      const imageData = await capturePreviewImage();
+      if (!imageData) throw new Error('Preview not ready');
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const width = pdf.internal.pageSize.getWidth();
+      const height = pdf.internal.pageSize.getHeight();
+      pdf.addImage(imageData, 'PNG', 0, 0, width, height, undefined, 'FAST');
+      pdf.save(`${fileNameBase || 'resume'}.pdf`);
+    } catch {
+      try {
+        const html = getExactPreviewHtml();
+        if (!html) throw new Error('Preview not ready');
+        await printHtmlThroughIframe(html);
+      } catch {
+        setExportError('Exact export failed. Keep preview visible and try again.');
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const downloadWord = async () => {
+    setExportError('');
+    setIsExporting(true);
+    try {
+      const imageData = await capturePreviewImage();
+      if (!imageData) throw new Error('Preview not ready');
+
+      const content = `
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <style>
+              @page { size: A4; margin: 0; }
+              html, body { margin: 0; padding: 0; background: #ffffff; }
+              .page { width: 794px; margin: 0 auto; }
+              img { width: 100%; display: block; }
+            </style>
+          </head>
+          <body>
+            <div class="page">
+              <img src="${imageData}" alt="Resume" />
+            </div>
+          </body>
+        </html>
+      `;
+
+      const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fileNameBase || 'resume'}.doc`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      try {
+        const html = getExactPreviewHtml();
+        if (!html) throw new Error('Preview not ready');
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${fileNameBase || 'resume'}.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch {
+        setExportError('Exact export failed. Keep preview visible and try again.');
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-base-200 pt-24">
       <div className="mx-auto grid max-w-[1880px] grid-cols-1 gap-5 px-4 pb-5 xl:grid-cols-[minmax(560px,720px)_minmax(760px,1fr)]">
@@ -406,9 +722,6 @@ function ResumeForm() {
             <div className="max-w-xl">
               <span className="badge badge-outline badge-primary mb-3">Simple Builder</span>
               <h2 className="text-3xl font-bold text-primary">Resume Form</h2>
-              <p className="mt-2 text-sm leading-6 text-base-content/70">
-                Clean editing on the left, full A4 preview on the right, and enough room to work without feeling cramped.
-              </p>
             </div>
             <div className="stats stats-horizontal border border-base-300 bg-base-200 shadow-sm">
               <div className="stat px-5 py-3">
@@ -423,9 +736,9 @@ function ResumeForm() {
           </div>
 
           <div className="collapse-arrow collapse border border-base-300 bg-base-200/70 shadow-sm">
-            <input type="checkbox" defaultChecked />
-            <div className="collapse-title pr-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+            <input type="checkbox" />
+            <div className="collapse-title pr-20">
+              <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-base-content/70">
                     Import Existing Resume Data
@@ -434,9 +747,6 @@ function ResumeForm() {
                     Paste LLM output or structured text and auto-fill everything.
                   </p>
                 </div>
-                <a href="/resume-import-example.txt" target="_blank" rel="noreferrer" className="btn btn-sm btn-outline">
-                  Open Example
-                </a>
               </div>
             </div>
             <div className="collapse-content space-y-3">
@@ -832,24 +1142,33 @@ function ResumeForm() {
               <p className="text-sm font-semibold uppercase tracking-[0.18em] opacity-70">A4 Preview</p>
               <p className="mt-1 text-sm text-base-content/60">The preview uses the full panel so you can inspect spacing more easily.</p>
             </div>
-            <label className="flex items-center gap-2 text-xs font-semibold opacity-70">
-              Zoom
-              <input
-                type="range"
-                min="70"
-                max="120"
-                value={zoom}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                className="range range-xs w-28"
-              />
-              <span className="w-8 text-right">{zoom}%</span>
-            </label>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button type="button" className="btn btn-sm btn-outline" onClick={downloadWord} disabled={isExporting}>
+                {isExporting ? 'Exporting...' : 'Download Word'}
+              </button>
+              <button type="button" className="btn btn-sm btn-primary" onClick={downloadPdf} disabled={isExporting}>
+                {isExporting ? 'Exporting...' : 'Download PDF'}
+              </button>
+              <label className="ml-2 flex items-center gap-2 text-xs font-semibold opacity-70">
+                Zoom
+                <input
+                  type="range"
+                  min="30"
+                  max="120"
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="range range-xs w-28"
+                />
+                <span className="w-8 text-right">{zoom}%</span>
+              </label>
+            </div>
           </div>
+          {exportError ? <p className="mb-2 text-xs text-error">{exportError}</p> : null}
 
           <div className="mockup-window h-[calc(100%-4rem)] border border-base-300 bg-base-300">
             <div className="flex h-full overflow-auto bg-base-200/70 p-4">
               <div className="mx-auto origin-top" style={{ transform: `scale(${zoom / 100})`, width: '210mm' }}>
-                <div className="h-[297mm] w-[210mm] bg-white px-[10mm] pb-[10mm] pt-[6.2mm] text-left text-black shadow-lg" style={{ fontFamily: 'Liberation Sans, Arial, sans-serif' }}>
+                <div data-export-root="resume" ref={resumePreviewRef} className="h-[297mm] w-[210mm] bg-white px-[10mm] pb-[10mm] pt-[6.2mm] text-left text-black shadow-lg" style={{ fontFamily: 'Liberation Sans, Arial, sans-serif' }}>
             <h1 className="mb-[2px] text-[26.7px] font-bold leading-[1.117] tracking-[-0.15px] text-[#2c2d92]">{personal.name || 'Your Name'}</h1>
 
             <div className="mt-0 space-y-[1px] text-[14px] leading-[1.12]">
