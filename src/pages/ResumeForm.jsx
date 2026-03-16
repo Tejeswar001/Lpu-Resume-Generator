@@ -110,6 +110,11 @@ function ResumeForm() {
   };
 
   const onImportFromText = () => {
+    if (!importText.trim()) {
+      setImportError('Please paste resume text or JSON before importing.');
+      return;
+    }
+
     try {
       const parsed = parseTextImport(importText);
       applyImportedData(parsed);
@@ -122,8 +127,17 @@ function ResumeForm() {
   const onImportFile = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const text = await file.text();
-    setImportText(text);
+
+    try {
+      const text = await file.text();
+      setImportText(text);
+      setImportError('');
+    } catch {
+      setImportError('Could not read the selected file. Please try another file.');
+    } finally {
+      // Allow selecting the same file again to retrigger onChange.
+      event.target.value = '';
+    }
   };
 
   const updateListItem = (setter, index, key, value) => {
@@ -172,10 +186,13 @@ function ResumeForm() {
     );
   };
 
-  const nonEmptyBullets = (lines) => lines.map((line) => line.trim()).filter(Boolean);
+  const asTrimmedText = (value) => String(value ?? '').trim();
+
+  const nonEmptyBullets = (lines) =>
+    (Array.isArray(lines) ? lines : []).map((line) => asTrimmedText(line)).filter(Boolean);
 
   const visibleSkills = useMemo(
-    () => skills.filter((entry) => entry.title.trim() || entry.items.trim()),
+    () => skills.filter((entry) => asTrimmedText(entry.title) || asTrimmedText(entry.items)),
     [skills]
   );
 
@@ -183,10 +200,10 @@ function ResumeForm() {
     () =>
       internships.filter(
         (entry) =>
-          entry.role.trim() ||
-          entry.company.trim() ||
-          entry.start.trim() ||
-          entry.end.trim() ||
+          asTrimmedText(entry.role) ||
+          asTrimmedText(entry.company) ||
+          asTrimmedText(entry.start) ||
+          asTrimmedText(entry.end) ||
           nonEmptyBullets(entry.highlights).length > 0
       ),
     [internships]
@@ -196,10 +213,10 @@ function ResumeForm() {
     () =>
       projects.filter(
         (entry) =>
-          entry.title.trim() ||
-          entry.tech.trim() ||
-          entry.link.trim() ||
-          entry.date.trim() ||
+          asTrimmedText(entry.title) ||
+          asTrimmedText(entry.tech) ||
+          asTrimmedText(entry.link) ||
+          asTrimmedText(entry.date) ||
           nonEmptyBullets(entry.highlights).length > 0
       ),
     [projects]
@@ -208,7 +225,11 @@ function ResumeForm() {
   const visibleCertifications = useMemo(
     () =>
       certifications.filter(
-        (entry) => entry.name.trim() || entry.issuer.trim() || entry.date.trim() || entry.link.trim()
+        (entry) =>
+          asTrimmedText(entry.name) ||
+          asTrimmedText(entry.issuer) ||
+          asTrimmedText(entry.date) ||
+          asTrimmedText(entry.link)
       ),
     [certifications]
   );
@@ -217,10 +238,10 @@ function ResumeForm() {
     () =>
       education.filter(
         (entry) =>
-          entry.school.trim() ||
-          entry.location.trim() ||
-          entry.duration.trim() ||
-          entry.program.trim()
+          asTrimmedText(entry.school) ||
+          asTrimmedText(entry.location) ||
+          asTrimmedText(entry.duration) ||
+          asTrimmedText(entry.program)
       ),
     [education]
   );
@@ -268,8 +289,8 @@ function ResumeForm() {
 
   return (
     <div className="min-h-screen bg-base-200 pt-28 sm:pt-24">
-      <div className="mx-auto grid max-w-[1880px] grid-cols-1 gap-4 px-3 pb-5 sm:gap-5 sm:px-4 xl:grid-cols-[minmax(560px,720px)_minmax(760px,1fr)]">
-        <div className="space-y-5 rounded-[28px] border border-base-300 bg-base-100 p-5 shadow-lg xl:h-[calc(100vh-7.5rem)] xl:overflow-y-auto">
+      <div className="mx-auto grid max-w-[1880px] grid-cols-1 gap-4 px-3 pb-5 sm:gap-5 sm:px-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <div className="min-w-0 space-y-5 rounded-[28px] border border-base-300 bg-base-100 p-5 shadow-lg xl:max-h-[calc(100vh-7.5rem)] xl:overflow-y-auto">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-xl">
               <span className="badge badge-outline badge-primary mb-3">Simple Builder</span>
