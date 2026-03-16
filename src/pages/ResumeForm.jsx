@@ -21,7 +21,7 @@ function ResumeForm() {
   const [importError, setImportError] = useState('');
   const [exportError, setExportError] = useState('');
 
-  const [zoom, setZoom] = useState(90);
+  const [zoom, setZoom] = useState(80);
 
   const [personal, setPersonal] = useState({
     name: '',

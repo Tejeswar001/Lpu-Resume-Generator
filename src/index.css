@@ -40,7 +40,7 @@ body {
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
+  font: 16px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
@@ -50,7 +50,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 
   @media (max-width: 1024px) {
-    font-size: 16px;
+    font-size: 15px;
+  }
+
+  @media (max-width: 640px) {
+    font-size: 14px;
   }
 }
 
@@ -78,11 +82,11 @@ body {
   }
 
   h1 {
-    font-size: 56px;
+    font-size: 48px;
     letter-spacing: -1.68px;
     margin: 32px 0;
     @media (max-width: 1024px) {
-      font-size: 36px;
+      font-size: 32px;
       margin: 20px 0;
     }
   }
