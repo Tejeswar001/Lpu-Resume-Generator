@@ -1,0 +1,73 @@
+# Resume Import Template (Example)
+# You can ask an LLM to extract resume details into this exact format.
+# Separator between items in repeating sections is: ---
+
+## PERSONAL
+name: John Doe
+linkedin: https://www.linkedin.com/in/johndoe
+email: john@example.com
+github: https://github.com/johndoe
+phone: +1 555-123-4567
+
+## SKILLS
+Languages: Python, Java, SQL
+AI/ML: Scikit-learn, XGBoost, OpenCV
+GenAI: Prompt Engineering, RAG, Agents
+Cloud: AWS, Azure
+
+## INTERNSHIPS
+role: Data Science Intern
+company: ACME Labs
+start: Jun 2025
+end: Aug 2025
+highlights:
+- Built analytics dashboard for weekly KPI monitoring
+- Automated data pipeline with Python and SQL
+- Improved model inference latency by 25%
+---
+role: Business Analyst Intern
+company: XYZ Analytics
+start: Jan 2025
+end: Apr 2025
+highlights:
+- Performed EDA on business datasets
+- Built forecasting model for demand planning
+
+## PROJECTS
+title: Fraud Detection System
+tech: Python, XGBoost, Pandas
+link: https://github.com/johndoe/fraud-detection
+date: Dec 2025
+highlights:
+- Trained binary classifier with class balancing
+- Tuned hyperparameters to improve F1 score
+---
+title: Traffic Signal Optimization
+tech: Python, YOLO, AWS
+link: https://github.com/johndoe/traffic-ai
+date: Mar 2025
+highlights:
+- Detected vehicle classes in real-time video
+- Reduced average waiting time using dynamic control
+
+## CERTIFICATIONS
+name: Azure Data Fundamentals
+issuer: Microsoft
+date: Jan 2025
+link: https://example.com/certificate-1
+---
+name: Professional Data Science
+issuer: Oracle
+date: Oct 2025
+link: https://example.com/certificate-2
+
+## EDUCATION
+school: Example University
+location: City, State
+duration: Aug 2021 - May 2025
+program: B.Tech CSE; CGPA: 8.7
+---
+school: Example Junior College
+location: City, State
+duration: Jun 2019 - Mar 2021
+program: Intermediate; Percentage: 95%
