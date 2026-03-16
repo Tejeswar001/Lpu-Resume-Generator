@@ -60,7 +60,7 @@ function ResumePreview({
       <div className="mockup-window h-[65vh] min-h-[22rem] overflow-hidden rounded-2xl border border-base-300 bg-base-300 sm:h-[72vh] xl:h-auto xl:min-h-0 xl:flex-1">
         <div className="flex h-full w-full overflow-auto bg-base-200/70 p-4">
           <div className="mx-auto shrink-0 origin-top" style={{ transform: `scale(${zoom / 100})`, width: '210mm' }}>
-            <div data-export-root="resume" ref={resumePreviewRef} className="h-[297mm] w-[210mm] bg-white px-[10mm] pb-[10mm] pt-[6.2mm] text-left text-black shadow-lg" style={{ fontFamily: 'Liberation Sans, Arial, sans-serif' }}>
+            <div data-export-root="resume" ref={resumePreviewRef} className="h-[297mm] w-[210mm] bg-white px-[10mm] pb-[10mm] pt-[4.4mm] text-left text-black shadow-lg" style={{ fontFamily: 'Liberation Sans, Arial, sans-serif' }}>
               <h1 className="mb-[2px] text-[26.7px] font-bold leading-[1.117] tracking-[-0.15px] text-[#2c2d92]">{personal.name || 'Your Name'}</h1>
 
               <div className="mt-0 space-y-[1px] text-[14px] leading-[1.12]">
