@@ -1,0 +1,304 @@
+# Resume Builder Documentation
+
+## 1. Overview
+
+This application provides a structured resume authoring workflow with these goals:
+
+- allow direct form-based editing
+- support import/autofill from structured text or JSON
+- render a near-print-accurate A4 preview
+- export the rendered preview to PDF or Word download
+- keep implementation modular and maintainable
+
+Primary route-level implementation is in [src/pages/ResumeForm.jsx](../src/pages/ResumeForm.jsx).
+
+## 2. Architecture
+
+### 2.1 Main Orchestration Layer
+
+File: [src/pages/ResumeForm.jsx](../src/pages/ResumeForm.jsx)
+
+Responsibilities:
+
+- owns all resume state (personal, skills, internships, projects, certifications, education)
+- owns import text and error state
+- owns export error state and zoom state
+- performs import normalization before state update
+- computes visible sections used by preview
+- passes data and handlers to child UI modules
+
+Design intent:
+
+- keep this file as a coordinator
+- keep parsing/render/export details in dedicated modules
+
+### 2.2 Resume Form Modules
+
+Files under [src/pages/resume-form](../src/pages/resume-form):
+
+1. [constants.js](../src/pages/resume-form/constants.js)
+- shared style constants for preview section headings
+- factory functions for default entry objects
+
+2. [parsers.js](../src/pages/resume-form/parsers.js)
+- text/JSON import parser
+- supports both fenced JSON and section-based text
+- includes bullet parsing and multi-line handling
+
+3. [EditorSection.jsx](../src/pages/resume-form/EditorSection.jsx)
+- reusable collapsible editor wrapper for each form block
+
+4. [ResumePreview.jsx](../src/pages/resume-form/ResumePreview.jsx)
+- right-side A4 preview panel
+- export buttons and zoom controls
+- preview markup used as export source
+
+5. [exportUtils.js](../src/pages/resume-form/exportUtils.js)
+- file name generation helper
+- preview HTML extraction helper
+- PDF print window helper
+- Word download helper
+
+## 3. Data Model
+
+### 3.1 Personal
+
+- name
+- linkedin
+- email
+- github
+- phone
+
+### 3.2 Skills
+
+Array of objects:
+
+- title
+- items (comma-separated text)
+
+### 3.3 Internships
+
+Array of objects:
+
+- role
+- company
+- start
+- end
+- highlights (array of bullet strings)
+
+### 3.4 Projects
+
+Array of objects:
+
+- title
+- tech
+- link
+- date
+- highlights (array of bullet strings)
+
+### 3.5 Certifications
+
+Array of objects:
+
+- name
+- issuer
+- date
+- link
+
+### 3.6 Education
+
+Array of objects:
+
+- school
+- location
+- duration
+- program
+
+## 4. Import and Autofill
+
+### 4.1 Input Modes
+
+Import supports:
+
+- direct paste in text area
+- file upload: .txt, .md, .json
+
+### 4.2 Accepted Formats
+
+1. JSON object with keys:
+- personal
+- skills
+- internships
+- projects
+- certifications
+- education
+
+2. Structured text format with sections:
+
+- ## PERSONAL
+- ## SKILLS
+- ## INTERNSHIPS
+- ## PROJECTS
+- ## CERTIFICATIONS
+- ## EDUCATION
+
+Entries in list sections can be separated by lines containing ---.
+
+### 4.3 Parser Behavior
+
+Implemented in [src/pages/resume-form/parsers.js](../src/pages/resume-form/parsers.js):
+
+- attempts JSON parse first (including fenced json blocks)
+- if JSON parse fails, parses section blocks from text
+- handles alternate aliases for fields (example: role/position)
+- normalizes bullets from lists, semicolon values, or pipe-separated values
+
+### 4.4 Safety and Normalization Layer
+
+Implemented in [src/pages/ResumeForm.jsx](../src/pages/ResumeForm.jsx) via applyImportedData:
+
+- coerces all scalar values to strings
+- enforces bullet arrays for highlights
+- guarantees each section has a valid fallback default entry
+
+This layer prevents UI crashes from malformed imported content.
+
+## 5. Preview Rendering
+
+Preview module: [src/pages/resume-form/ResumePreview.jsx](../src/pages/resume-form/ResumePreview.jsx)
+
+Features:
+
+- A4-size preview container (210mm x 297mm)
+- zoom control (30% to 120%)
+- section visibility based on non-empty filtered data
+- styles designed to match print/export output as closely as possible
+
+Rendering notes:
+
+- preview content is the single source for export content
+- local helper functions sanitize split/join and bullet rendering in preview
+
+## 6. Export System
+
+Utility module: [src/pages/resume-form/exportUtils.js](../src/pages/resume-form/exportUtils.js)
+
+### 6.1 PDF Export
+
+Flow:
+
+1. clone preview DOM
+2. wrap in print HTML scaffold with stylesheet links
+3. open browser print window
+4. trigger print dialog
+
+Constraints:
+
+- popup blockers can block print window
+- user must allow popups for PDF flow
+
+### 6.2 Word Export
+
+Flow:
+
+1. clone preview DOM into HTML
+2. create blob from HTML
+3. trigger file download with .docx extension
+
+Important note:
+
+- current implementation downloads HTML-based content with .docx filename for compatibility and visual fidelity
+- this is not a fully native Office Open XML package generated by a docx library
+
+If strict native docx output is required, add a true docx generation pipeline.
+
+## 7. Recent Stability Fixes
+
+### 7.1 Import Caused Black Screen
+
+Issue:
+
+- UI became blank after import/autofill
+
+Root cause:
+
+- preview called helper props that were no longer passed during modularization
+
+Fix:
+
+- moved preview helper logic into [src/pages/resume-form/ResumePreview.jsx](../src/pages/resume-form/ResumePreview.jsx)
+- added robust import data normalization in [src/pages/ResumeForm.jsx](../src/pages/ResumeForm.jsx)
+
+### 7.2 Download Buttons Not Working
+
+Issue:
+
+- export buttons appeared clickable but no download happened
+
+Root cause:
+
+- export helper expected a DOM element but received a React ref object
+
+Fix:
+
+- updated [src/pages/resume-form/exportUtils.js](../src/pages/resume-form/exportUtils.js) to accept either ref object or raw element
+- added explicit handler try/catch in [src/pages/ResumeForm.jsx](../src/pages/ResumeForm.jsx)
+- updated Word filename extension to .docx
+
+## 8. Error Handling
+
+Current error surfaces:
+
+- import parse failures -> import error text
+- missing preview/export failures -> export error text
+- popup blocked for PDF -> clear message in export error
+
+Recommended future enhancement:
+
+- add toast notifications for success/failure with richer context
+
+## 9. Maintenance Guidelines
+
+### 9.1 Safe Change Rules
+
+- keep parser changes in [src/pages/resume-form/parsers.js](../src/pages/resume-form/parsers.js)
+- keep preview structure centralized in [src/pages/resume-form/ResumePreview.jsx](../src/pages/resume-form/ResumePreview.jsx)
+- keep export mechanics centralized in [src/pages/resume-form/exportUtils.js](../src/pages/resume-form/exportUtils.js)
+- keep [src/pages/ResumeForm.jsx](../src/pages/ResumeForm.jsx) focused on state orchestration and handler wiring
+
+### 9.2 Adding a New Resume Section
+
+1. add factory in [src/pages/resume-form/constants.js](../src/pages/resume-form/constants.js)
+2. add state and update handlers in [src/pages/ResumeForm.jsx](../src/pages/ResumeForm.jsx)
+3. add import parsing in [src/pages/resume-form/parsers.js](../src/pages/resume-form/parsers.js)
+4. add editor UI block in [src/pages/ResumeForm.jsx](../src/pages/ResumeForm.jsx)
+5. add preview rendering block in [src/pages/resume-form/ResumePreview.jsx](../src/pages/resume-form/ResumePreview.jsx)
+6. include section in visibility counters if needed
+
+## 10. Validation Checklist
+
+After major changes:
+
+1. run build:
+   npm run build
+2. test import with:
+- valid JSON
+- malformed JSON
+- structured text format
+3. verify export:
+- PDF opens print dialog
+- Word downloads with expected extension
+4. verify preview still renders all sections with partial and complete data
+
+## 11. Known Limitations
+
+- PDF generation relies on browser print window behavior
+- Word output is HTML-compatible export with .docx filename, not strict native OOXML packaging
+- no automated tests currently covering parser and export regressions
+
+## 12. Recommended Next Improvements
+
+1. add unit tests for parser edge cases and normalization
+2. add integration tests for import/autofill flow
+3. add fallback PDF path using a dedicated library for environments with popup restrictions
+4. implement true native .docx generation if strict document fidelity is required by ATS/workflow

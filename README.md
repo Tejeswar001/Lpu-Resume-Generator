@@ -1,16 +1,41 @@
-# React + Vite
+# LPU Resume Builder
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Web app to create resumes from manual input or imported structured text/JSON, preview in A4 format, and export to PDF/Word.
 
-Currently, two official plugins are available:
+## Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Install dependencies:
 
-## React Compiler
+	npm install
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+2. Start development server:
 
-## Expanding the ESLint configuration
+	npm run dev
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+3. Build for production:
+
+	npm run build
+
+## Project Structure
+
+- Core page: [src/pages/ResumeForm.jsx](src/pages/ResumeForm.jsx)
+- Modular resume builder units:
+  - [src/pages/resume-form/constants.js](src/pages/resume-form/constants.js)
+  - [src/pages/resume-form/parsers.js](src/pages/resume-form/parsers.js)
+  - [src/pages/resume-form/EditorSection.jsx](src/pages/resume-form/EditorSection.jsx)
+  - [src/pages/resume-form/ResumePreview.jsx](src/pages/resume-form/ResumePreview.jsx)
+  - [src/pages/resume-form/exportUtils.js](src/pages/resume-form/exportUtils.js)
+
+## Detailed Documentation
+
+Full technical documentation is available in:
+
+- [docs/RESUME_BUILDER_DOCUMENTATION.md](docs/RESUME_BUILDER_DOCUMENTATION.md)
+
+It includes:
+
+- data flow and state model
+- supported import formats
+- export architecture (PDF and Word)
+- known limitations and troubleshooting
+- extension guide for future feature work
